@@ -21,6 +21,7 @@
 			<p style="color:red;">Sai mật khẩu hoặc tài khoản</p>
 		</c:if>
 	    <p><input type="submit" value="Log in"></p>
+	   	 <p><a href="/">Back to Home</a></p>
 	  </form>
 	</div>
 </body>

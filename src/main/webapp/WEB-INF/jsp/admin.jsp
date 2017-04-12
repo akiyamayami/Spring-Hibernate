@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -38,12 +39,13 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-			<a class="navbar-brand" href="/index">Home</a>
+			<a class="navbar-brand" href="/">Home</a>
 		</div>
 		<div id="navbar" class="navbar-collapse collapse">
 			<ul class="nav navbar-nav">
 				<li class="active"><a href="/admin">Chỉnh Sữa News</a></li>
 				<li><a href="/odernews">Các Trang còn lại</a></li>
+				<li><a href="/accountmanager">Quản lý Account</a></li>
 			</ul>
 			<a href="/logout" class="btn btn-primary navbar-right">Logout</a>
 		</div>
@@ -71,8 +73,8 @@
 							<th scope="row">${item.id}</th>
 							<td>${item.tieude}</td>
 							<td>${item.date}</td>
-							<td><a href='/chinhsuanew?id=${item.id}'><span class="glyphicon glyphicon-pencil"></span></a></td>
-							<td><a href='/deletenew?id=${item.id}'><span class="glyphicon glyphicon-trash"></span></a></td>
+							<td><a href='/chinhsuanew-${item.id}'><span class="glyphicon glyphicon-pencil"></span></a></td>
+							<td><a href='/deletenew-${item.id}'><span class="glyphicon glyphicon-trash"></span></a></td>
 						</tr>
 					</c:forEach>
 				</tbody>
@@ -80,39 +82,52 @@
 		</c:when>
 		<c:when test='${MODE == "MODE_ADD" || MODE == "MODE_EDIT"}'>
 			<div class="row"></div>
-			<form class="form-horizontal" action="/themnew" method="POST" enctype="multipart/form-data">
-				<input type="hidden" name="id" value="${news.id}"/>
+			<form:form class="form-horizontal" method="post" modelAttribute="news" action="/themnew" enctype="multipart/form-data">
+				<form:input type="hidden" path="id" id="id"/>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">Tiêu Đề</label>
 					<div class="col-sm-9">
-						<input type="text" name="tieude" class="form-control" placeholder="Tiêu Đề" value="<c:out value="${news.tieude}"/>">
+						<form:input type="text" path="tieude" class="form-control" placeholder="Tiêu Đề" />
+						<div class="has-error">
+                        	<form:errors class="control-label" path="tieude"/>
+                        </div>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">Nội Dung</label>
 					<div class="col-sm-9">
-						<textarea id="noidung" name="noidung" style="resize:none;" class="form-control" rows="10" placeholder="Nội dung">
-						<c:out value="${news.noidung}"/>
-						</textarea>
+						<form:textarea id="noidung" path="noidung" style="resize:none;" class="form-control" rows="10"/>
+						<div class="has-error">
+                        	<form:errors class="control-label" path="noidung"/>
+                        </div>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">Ngày Đăng</label>
 					<div class="col-sm-9">
-						<input type="date" id="datePicker" name="date" class="form-control" value="<c:out value="${news.date}"/>">
+						<form:input path="date" type="date" id="datePicker" class="form-control"/>
+						<div class="has-error">
+                        	<form:errors class="control-label" path="date"/>
+                        </div>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">Ảnh</label>
 					<div class="col-sm-9">
-						<input type="file" id="fileanh" name="fileanh" class="form-control" accept="image/*">
+						<form:input type="file" id="fileanh" path="hinhanh" name="hinhanh" class="form-control" accept="image/*"/>
+						<div class="has-error">
+                        	<form:errors class="control-label" path="hinhanh"/>
+                        </div>
 						<img id="srcanh" src="<c:out value="${news.hinhanh}"/>" height="100px" width="100px">
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">File</label>
 					<div class="col-sm-9">
-						<input type="file" id="file" name="file"  class="form-control">
+						<form:input type="file" id="file" path="file" name="file" class="form-control"/>
+						<div class="has-error">
+                        	<form:errors class="control-label" path="file"/>
+                        </div>
 						<a id ="hreffile" href="<c:out value="${news.file}"/>" download>
 							<c:if test="${news.file != null}">File</c:if>
 						</a>
@@ -123,9 +138,8 @@
 						<button type="submit" class="btn btn-default">Save</button>
 					</div>
 				</div>
-			</form>
+			</form:form>
 			<script type="text/javascript">
-				document.getElementById("datePicker").valueAsDate = new Date();
 				function readURL(input) {
 				    if (input.files && input.files[0]) {
 				        var reader = new FileReader();
@@ -139,18 +153,6 @@
 				}
 				CKEDITOR.replace( 'noidung' );
 				$(document).ready(function() {
-					$('#file').bind('change', function() {
-						if (this.files[0].size > 1000000) {
-							alert("Size file too big please upload file < 1mb");
-							this.value="";
-						}
-					});
-					$('#fileanh').bind('change', function() {
-						if (this.files[0].size > 1000000) {
-							alert("Size file image too big please upload file < 1mb");
-							this.value="";
-						}
-					});
 					$("#fileanh").change(function(){
 					    readURL(this);
 					});
@@ -159,6 +161,7 @@
 						$('#hreffile').text('File');
 					})
 				})
+
 			</script>
 		</c:when>
 	</c:choose>

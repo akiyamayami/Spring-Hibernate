@@ -18,8 +18,14 @@ import javax.servlet.http.HttpServletResponse;
 import org.hibernate.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,6 +39,10 @@ import com.example.model.OderNews;
 import com.example.service.NewsService;
 import com.example.service.OderNewsService;
 import com.example.service.UserService;
+import com.example.validator.FileValidator;
+import com.example.validator.NewsFormValidator;
+
+import scala.annotation.meta.setter;
 
 @Controller
 public class LoginController {
@@ -42,8 +52,18 @@ public class LoginController {
 	@Autowired
 	private NewsService newsService;
 	
+	
+	
 	@Autowired
-	private OderNewsService oderNewsService;
+	private NewsFormValidator newsFormValidator;
+	
+	@Autowired
+	private FileValidator fileValidator;
+	
+	@InitBinder
+	protected void initBinder(WebDataBinder binder) {
+		binder.setValidator(newsFormValidator);
+	}
 	
 	@GetMapping("/login")
 	public String login(HttpServletRequest request){
@@ -57,82 +77,73 @@ public class LoginController {
 		return "admin";
 	}
 	
-	@GetMapping("/chinhsuanew")
-	public String edit(HttpServletRequest request, @RequestParam("id") int id){
-		request.setAttribute("MODE", "MODE_EDIT");
-		News news = newsService.findNews(id);
-		request.setAttribute("news", news);
+	@RequestMapping(value = "/chinhsuanew-{newsID}", method = RequestMethod.GET)
+	public String edit(@PathVariable int newsID, Model model) {
+			model.addAttribute("MODE","MODE_EDIT");
+			News news = newsService.findNews(newsID);
+			model.addAttribute("news",news);
 		return "admin";
 	}
-	@GetMapping("/deletenew")
-	public String delete(@RequestParam("id") int id){
-		newsService.deleteNews(id);
+	
+	
+	@GetMapping("/deletenew-{newsID}")
+	public String delete(@PathVariable int newsID){
+		newsService.deleteNews(newsID);
+		return "redirect:/admin";
+	}
+	
+	@RequestMapping(value = "/themnew", method = RequestMethod.GET)
+	public String add( Model model) {
+			model.addAttribute("MODE","MODE_ADD");
+			model.addAttribute("news",new News());
 		return "admin";
 	}
-	@GetMapping("/themnew")
-	public String add(HttpServletRequest request){
-		request.setAttribute("MODE", "MODE_ADD");
-		return "admin";
-	}
-	@PostMapping("/themnew")
-	public @ResponseBody
-	void addnews(@RequestParam("id") String id, @RequestParam("tieude") String tieude, @RequestParam("noidung") String noidung,
-			@RequestParam("date") String date, @RequestParam("fileanh") MultipartFile fileanh,
-			@RequestParam("file") MultipartFile file,HttpServletResponse reponse, MultipartHttpServletRequest request) throws ParseException, IOException{
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-mm-dd");
-		News news = new News(tieude,noidung,null,null,formatter.parse(date));;
-		News news2 = null;
-		int idnext = newsService.getIDnext();
-		System.out.println("XX +" + id + "+ XX");
-		if(id != null && !id.isEmpty())
-		{
-			news2 = newsService.findNews(Integer.parseInt(id));
+	
+	
+	@RequestMapping(value = "/themnew", method = RequestMethod.POST)
+	public String saveOrUpdateUser(@ModelAttribute("news") @Validated News news,
+			BindingResult result, Model model,@RequestParam("file") MultipartFile file
+			,@RequestParam("hinhanh") MultipartFile hinhanh,
+			HttpServletRequest request) {
+
+		fileValidator.validate(file, result);
+		if(result.hasErrors()){
+			model.addAttribute("MODE","MODE_ADD");
+			return "admin";
 		}
+		int idnext = newsService.getIDnext();
 		String namefile = null;
 		String nameanh = null;
 		String location = null;
 		String name = null;
+		int id = news.getId();
+		System.out.println(hinhanh.getSize());
 		if (!file.isEmpty()) {
+		
 			location = request.getServletContext().getRealPath("static") + "/File/";
 			name = file.getOriginalFilename();
-			if(id != null && !id.isEmpty())
+			if(id != 0)
 				namefile = id + name.substring(name.lastIndexOf("."),name.length());
 			else
 				namefile = idnext + name.substring(name.lastIndexOf("."),name.length());
 			uploadfile(file,location,namefile);
 		}
-		if (!fileanh.isEmpty()) {
+		if (!hinhanh.isEmpty()) {
 			location = request.getServletContext().getRealPath("static") + "/Image/";
-			name = fileanh.getOriginalFilename();
-			if(id != null && !id.isEmpty())
+			name = hinhanh.getOriginalFilename();
+			if(id != 0)
 				nameanh = id + name.substring(name.lastIndexOf("."),name.length());
 			else
 				nameanh = idnext + name.substring(name.lastIndexOf("."),name.length());
 			uploadfile(file,location,nameanh);
 		}
-		if(id != null && !id.isEmpty())
-		{
-			news.setId(Integer.parseInt(id));
-			if(namefile != null)
-				news.setFile("static/File/" + namefile );
-			else
-				news.setFile(news2.getFile());
-			if(nameanh != null)
-				news.setHinhanh("static/Image/" + nameanh );
-			else
-				news.setHinhanh(news2.getHinhanh());
-		}
-		else
-		{
-			if(namefile != null)
-				news.setFile("static/File/" + namefile );
-			if(nameanh != null)
-				news.setHinhanh("static/Image/" + nameanh );
-		}
+		if(namefile != null)
+			news.setFile("static/File/" + namefile );
+		if(nameanh != null)
+			news.setHinhanh("static/Image/" + nameanh );
 		newsService.saveNews(news);
-		reponse.sendRedirect("/admin");
+		return "redirect:/admin";
 	}
-	
 	public void uploadfile(MultipartFile file, String localtion,String namefile){
 		byte[] bytes;
 		try {
@@ -145,7 +156,6 @@ public class LoginController {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-          
 	}
 	
 	@PostMapping("/login")
@@ -154,32 +164,6 @@ public class LoginController {
 			return "redirect:/admin";
 		return "redirect:/login?error=true";
 	}
-	
-	// Chỉnh sữa cấu hình odernews
-	
-	@GetMapping("/odernews")
-	public String odernews(HttpServletRequest request){
-		request.setAttribute("MODE", "MODE_HOME");
-		List<OderNews> odernews = oderNewsService.findAll();
-		request.setAttribute("odernews", odernews);
-		return "odernews";
-	}
-	@GetMapping("/chinhsuaodernew")
-	public String chinhsuaodernew(HttpServletRequest request, @RequestParam("id") String id){
-		request.setAttribute("MODE", "MODE_EDIT");
-		OderNews odernews = oderNewsService.findOne(Integer.parseInt(id));
-		request.setAttribute("odernews", odernews);
-		return "odernews";
-	}
-	
-	@PostMapping("/chinhsuaodernew")
-	public String chinhsuaodernewpost(HttpServletRequest request, @RequestParam("id") String id,
-			@RequestParam("noidung") String noidung){
-		OderNews odernews = oderNewsService.findOne(Integer.parseInt(id));
-		odernews.setNoidung(noidung);
-		oderNewsService.save(odernews);
-		return "redirect:/odernews";
-	};
 	
 	
 	@GetMapping("/logout")

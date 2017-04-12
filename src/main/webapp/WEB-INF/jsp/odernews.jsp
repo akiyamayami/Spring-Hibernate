@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -38,12 +39,13 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-			<a class="navbar-brand" href="/index">Home</a>
+			<a class="navbar-brand" href="/">Home</a>
 		</div>
 		<div id="navbar" class="navbar-collapse collapse">
 			<ul class="nav navbar-nav">
 				<li ><a href="/admin">Chỉnh Sữa News</a></li>
 				<li class="active"><a href="/odernews">Các Trang còn lại</a></li>
+				<li><a href="/accountmanager">Quản lý Account</a></li>
 			</ul>
 			<a href="/logout" class="btn btn-primary navbar-right">Logout</a>
 		</div>
@@ -67,7 +69,7 @@
 						<tr>
 							<th scope="row">${item.id}</th>
 							<td>${item.type}</td>
-							<td><a href='/chinhsuaodernew?id=${item.id}'><span class="glyphicon glyphicon-pencil"></span></a></td>
+							<td><a href='/chinhsuaodernew-${item.id}'><span class="glyphicon glyphicon-pencil"></span></a></td>
 						</tr>
 					</c:forEach>
 				</tbody>
@@ -75,14 +77,16 @@
 		</c:when>
 		<c:when test='${MODE == "MODE_EDIT"}'>
 			<div class="row"></div>
-			<form class="form-horizontal" action="/chinhsuaodernew" method="POST" enctype="multipart/form-data">
-				<input type="hidden" name="id" value="${odernews.id}"/>
+			<form:form class="form-horizontal" modelAttribute="odernews" action="/chinhsuaodernew" method="POST">
+				<form:input type="hidden" name="id" path="id"/>
+				<form:input type="hidden" name="type" path="type"/>
 				<div class="form-group">
 					<label class="col-sm-2 control-label">Nội Dung</label>
 					<div class="col-sm-9">
-						<textarea id="noidung" name="noidung" style="resize:none;" class="form-control" rows="10" placeholder="Nội dung">
-						<c:out value="${odernews.noidung}"/>
-						</textarea>
+						<form:textarea id="noidung" path="noidung" style="resize:none;" class="form-control" rows="10" placeholder="Nội dung"/>
+						<div class="has-error">
+                        	<form:errors class="control-label" path="noidung"/>
+                        </div>
 					</div>
 				</div>
 				<div class="form-group">
@@ -90,7 +94,7 @@
 						<button type="submit" class="btn btn-default">Save</button>
 					</div>
 				</div>
-			</form>
+			</form:form>
 			<script type="text/javascript">
 				CKEDITOR.replace( 'noidung' );
 			</script>
