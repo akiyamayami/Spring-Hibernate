@@ -49,14 +49,15 @@ public class AccountController {
 	
 	@RequestMapping(value = "/chinhsuaaccount-{userID}", method = RequestMethod.GET)
 	public String chinhsuaaccount(Model model,@PathVariable String userID) {
-		userService.delete(userID);
-		return "redirect:/accountmanager";
+		model.addAttribute("MODE", "MODE_EDIT");
+		model.addAttribute("user",userService.findUser(userID));
+		return "accountmanager";
 	}
 	
 	@RequestMapping(value = "/chinhsuaaccount", method = RequestMethod.POST)
 	public String doimatkhau(Model model,@ModelAttribute("user") @Validated User user,
 			BindingResult result) {
-		if(result.hasErrors())
+		if(result.getErrorCount() != 1)
 		{
 			model.addAttribute("MODE","MODE_EDIT");
 			return "accountmanager";
